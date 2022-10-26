@@ -1,0 +1,91 @@
+library(readr)
+library(forecast)
+NJ_MedianListingPrice_AllHomes <- 
+  read_csv("C:\\Users\\jaytr\\OneDrive\\Desktop\\Metro_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv")
+NJ_MedianListingPrice_AllHomes<-na.omit(NJ_MedianListingPrice_AllHomes)
+NJ_Home_Raw <- NJ_MedianListingPrice_AllHomes[,6]
+NJ_Home_TS <- ts(NJ_Home_Raw,frequency = 12, start = c(1996,4))
+plot(NJ_Home_TS)
+
+
+#the Time series has a clear downward trend, it has seasonality and has cyclic component due to irregular rise and fall exhibited.
+
+summary(NJ_Home_Raw)
+#Min=40039, Max= 350068, Mean=130483, Median=122677, 1st Quartile= 95099, 3rd Quartile = 153702
+
+#Boxplot
+boxplot(NJ_Home_Raw)
+
+# The difference between 3 rd quartile and max is very High, Making maximum value an outlier. The difference between 1st quartile and min value is also considerable
+############
+DECOMPOSITION
+############
+Homevalues_decomp <- decompose(NJ_Home_TS)
+plot(Homevalues_decomp)
+attributes(Homevalues_decomp)
+# the time series is Seasonal, the decomposition is additive,
+# the value for the month of December is high as it is cold and the month for festive season, when customers want to buy.
+
+plot(seasadj(Homevalues_decomp))
+
+plot(NJ_Home_TS)
+
+lines(seasadj(Homevalues_decomp), col="Red")
+#Seasonality does not hav ebig fluctuations
+
+#########
+Naive Method
+#########
+
+naive_home <- naive(NJ_Home_TS,5)
+plot(naive_home)
+attributes(naive_home)
+plot(naive_home$residuals)
+hist(naive_home$residuals)
+Acf(naive_home$residuals)
+plot(NJ_Home_TS)
+lines(naive_home,col="blue")
+lines(naive_home$residuals, col="red")
+
+#########
+Simple Moving Averages
+#########
+
+MA3_forecast <- ma(NJ_Home_TS,order=3)
+MA6_forecast <- ma(NJ_Home_TS,order=6)
+MA9_forecast <- ma(NJ_Home_TS,order=9)
+
+plot(NJ_Home_TS)
+lines(MA3_forecast,col="red")
+lines(MA6_forecast,col="blue")
+lines(MA9_forecast,col="green")
+fcst<-forecast(MA3_forecast,h=12)
+plot(fcst)
+#As the moving average goes up the seasonality is increasing and the mean is dropping
+#########
+Simple Smoothing
+#########
+smoothing_forecast <- ets(NJ_Home_TS)
+plot(smoothing_forecast)
+#########
+Holt-Winters
+#########
+hw_homes <- HoltWinters(NJ_Home_TS)
+attributes(hw_homes)
+#beta specifies how to smooth the cyclic   component
+hw_homes$alpha
+#beta specifies how to smooth the trend component
+hw_homes$beta
+#beta specifies how to smooth the seasonal component
+hw_homes$gamma
+#########
+Accuracy Summary
+#########
+
+Acf(naive_home$residuals)
+Acf(MA3_forecast)
+Acf(hw_homes)
+#########
+Conclusion
+#########
+Since Naive residuals fall within 0.2 to -0.2 range it is the most accurate method
